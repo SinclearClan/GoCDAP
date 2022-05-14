@@ -1,11 +1,13 @@
 package discord
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/SinclearClan/GoCDAP/calendar"
 	"github.com/SinclearClan/GoCDAP/config"
 	"github.com/hugolgst/rich-go/client"
+	"jaytaylor.com/html2text"
 )
 
 func SetActivity(cfg *config.Config) {
@@ -19,14 +21,37 @@ func SetActivity(cfg *config.Config) {
 	if len(cal.Events) > 0 { 																	// ONE OR MORE EVENTS
 		first := cal.Events[0]
 
+		re := regexp.MustCompile(`[a-zA-Z0-9[:blank:]–-—?!.,+]*$`)
+		firstDescription, err := html2text.FromString(first.Description, html2text.Options{PrettyTables: true})
+		if err != nil {
+			panic(err)
+		}
+		for _, match := range re.FindAllString(firstDescription, -1) {
+			firstDescription = " " + match
+		}
+		if len(firstDescription) < 3 {
+			firstDescription = ""
+		}
+
 		if calendar.InTimeSpan(first.Start, first.End) {										// ONE OR MORE EVENTS, FIRST ENTRY IS RIGHT NOW
 
 			if len(cal.Events) > 1 {															// ONE OR MORE EVENTS, FIRST ENTRY IS RIGHT NOW, A SECOND EVENT EXISTS
 				second := cal.Events[1]
 
+				secondDescription, err := html2text.FromString(second.Description, html2text.Options{PrettyTables: true})
+				if err != nil {
+					panic(err)
+				}
+				for _, match := range re.FindAllString(secondDescription, -1) {
+					secondDescription = " " + match
+				}
+				if len(secondDescription) < 3 {
+					secondDescription = ""
+				}
+
 				err = client.SetActivity(client.Activity{
-					Details:    "Aktuell: " + first.Summary,
-					State:      "Danach: " + second.Start.Format("15:04") + " – " + second.Summary,
+					Details:    "Aktuell: " + first.Summary + firstDescription,
+					State:      "Danach: " + second.Start.Format("15:04") + " – " + second.Summary + secondDescription,
 					Timestamps: &client.Timestamps{
 						Start: first.Start,
 						End:  first.End,
@@ -45,7 +70,7 @@ func SetActivity(cfg *config.Config) {
 			} else {																			// ONE OR MORE EVENTS, FIRST ENTRY IS RIGHT NOW, NO SECOND EVENT EXISTS
 
 				err = client.SetActivity(client.Activity{
-					Details:    "Aktuell: " + first.Summary,
+					Details:    "Aktuell: " + first.Summary + firstDescription,
 					State:      "Danach: – ",
 					Timestamps: &client.Timestamps{
 						Start: first.Start,
@@ -68,7 +93,7 @@ func SetActivity(cfg *config.Config) {
 
 			err = client.SetActivity(client.Activity{
 				Details:    "Aktuell: – ",
-				State:      "Danach: " + first.Start.Format("15:04") + " – " + first.Summary,
+				State:      "Danach: " + first.Start.Format("15:04") + " – " + first.Summary + firstDescription,
 				Buttons: []*client.Button{
 					{
 						Label: "Kalender anzeigen",
