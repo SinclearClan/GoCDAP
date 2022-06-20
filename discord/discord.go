@@ -25,7 +25,7 @@ var (
 
 func SetActivity(cfg *config.Config) {
 
-	re := regexp.MustCompile(`[a-zA-Z0-9[:blank:]-–—?!.,+]*$`)
+	re := regexp.MustCompile(`[a-zA-Z0-9[:blank:]äöüßÄÖÜẞ–—?!.,+-]*$`)
 
 	err := client.Login("836637382509068319")
 	if err != nil {
